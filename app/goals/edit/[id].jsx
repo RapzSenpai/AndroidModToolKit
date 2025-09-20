@@ -1,35 +1,45 @@
 import { useEffect, useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, Keyboard } from "react-native";
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  Pressable, 
+  StyleSheet, 
+  ActivityIndicator, 
+  Keyboard, 
+  Switch 
+} from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../../firebaseConfig";
-import Slider from "@react-native-community/slider"; 
 
-const EditGoal = () => {
+const EditTool = () => {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const [title, setTitle] = useState("");
-  const [progress, setProgress] = useState(0);
+  const [description, setDescription] = useState("");
+  const [enabled, setEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchGoal = async () => {
+    const fetchTool = async () => {
       try {
         const docRef = doc(db, "goals", id);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
-          setTitle(data.title);
-          setProgress(Number(data.progress));
+          setTitle(data.title || "");
+          setDescription(data.description || "");
+          setEnabled(data.enabled ?? false);
         }
       } catch (error) {
-        console.log("Error fetching goal:", error);
+        console.log("Error fetching tool:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchGoal();
+    fetchTool();
   }, [id]);
 
   const handleUpdate = async () => {
@@ -37,12 +47,13 @@ const EditGoal = () => {
       const docRef = doc(db, "goals", id);
       await updateDoc(docRef, {
         title,
-        progress,
+        description,
+        enabled,
       });
       Keyboard.dismiss();
       router.push("/goals");
     } catch (error) {
-      console.log("Error updating goal:", error);
+      console.log("Error updating tool:", error);
     }
   };
 
@@ -56,32 +67,37 @@ const EditGoal = () => {
 
   return (
     <View style={styles.container}>
-      
       <View style={styles.card}>
-        <Text style={styles.label}>Title</Text>
+        <Text style={styles.label}>Tool Name</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter tool title"
+          placeholder="Enter tool name"
           placeholderTextColor="#888"
           value={title}
           onChangeText={setTitle}
         />
 
-        <Text style={styles.label}>Progress: {progress}%</Text>
-        <Slider
-          style={{ width: "100%", height: 40 }}
-          minimumValue={0}
-          maximumValue={100}
-          step={1}
-          minimumTrackTintColor="#21cc8d"
-          maximumTrackTintColor="#444"
-          thumbTintColor="#21cc8d"
-          value={progress}
-          onValueChange={setProgress}
+        <Text style={styles.label}>Description</Text>
+        <TextInput
+          style={[styles.input, { height: 80, textAlignVertical: "top" }]}
+          placeholder="Enter description"
+          placeholderTextColor="#888"
+          multiline
+          value={description}
+          onChangeText={setDescription}
         />
+
+        <View style={styles.toggleRow}>
+          <Text style={styles.label}>Enable Tool</Text>
+          <Switch
+            value={enabled}
+            onValueChange={setEnabled}
+            thumbColor={enabled ? "#21cc8d" : "#888"}
+            trackColor={{ false: "#444", true: "#21cc8d55" }}
+          />
+        </View>
       </View>
 
-      
       <Pressable onPress={handleUpdate} style={styles.button}>
         <Text style={styles.buttonText}>Update Tool</Text>
       </Pressable>
@@ -89,16 +105,16 @@ const EditGoal = () => {
   );
 };
 
-export default EditGoal;
+export default EditTool;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#121212", 
+    backgroundColor: "#121212",
     padding: 20,
   },
   card: {
-    backgroundColor: "#1e1e1e", 
+    backgroundColor: "#1e1e1e",
     borderRadius: 16,
     padding: 20,
     shadowColor: "#000",
@@ -119,6 +135,12 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 10,
     marginBottom: 15,
+  },
+  toggleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 10,
   },
   button: {
     backgroundColor: "#21cc8d",
